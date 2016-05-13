@@ -39,7 +39,7 @@ class VkApi(object):
                  proxies=None,
                  auth_handler=None, captcha_handler=None,
                  config_filename='vk_config.json',
-                 api_version='5.44', app_id=2895443, scope=33554431,
+                 api_version='5.52', app_id=None, scope=33554431,
                  client_secret=None, delay=0.34, too_many_rps_retry=False):
         """
         :param login: Логин ВКонтакте
@@ -62,8 +62,8 @@ class VkApi(object):
         :param captcha_handler: Функция для обработки капчи
         :param config_filename: Расположение config файла
 
-        :param api_version: Версия API (default: '5.35')
-        :param app_id: Standalone-приложение (default: 2895443)
+        :param api_version: Версия API (default: '5.52')
+        :param app_id: Standalone-приложение
         :param scope: Запрашиваемые права (default: 33554431)
         :param client_secret: Защищенный ключ приложения для серверной
                                 авторизации (https://vk.com/dev/auth_server)
