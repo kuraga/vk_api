@@ -403,10 +403,9 @@ class VkApi(object):
             if delay > 0:
                 time.sleep(delay)
 
-            response = self.http.post(url, values)
-
             self.last_request = time.time()
 
+        response = self.http.post(url, values)
         if response.ok:
             response = response.json()
         else:
