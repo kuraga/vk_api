@@ -34,16 +34,17 @@ RE_PHONE_POSTFIX = re.compile(r'phone_postfix">.*?(\d+).*?<')
 
 
 class VkApi(object):
-    def __init__(self, login=None, password=None, number=None, sec_number=None,
-                 token=None,
-                 proxies=None,
+    def __init__(self, login=None, password=None, http=None,
+                 number=None, sec_number=None,
+                 token=None, config_filename='vk_config.json',
                  auth_handler=None, captcha_handler=None,
-                 config_filename='vk_config.json',
                  api_version='5.52', app_id=None, scope=33554431,
                  client_secret=None, delay=0.34, too_many_rps_retry=False):
         """
         :param login: Логин ВКонтакте
         :param password: Пароль ВКонтакте
+        :param http: Объект requests.Session()
+
         :param number: Номер для проверки безопасности (указывать, если
                         в качестве логина используется не номер)
         :param sec_number: Часть номера, которая проверяется при проверке
@@ -51,25 +52,22 @@ class VkApi(object):
                             вводить и если автоматическое получение кода из
                             номера работает не корректно)
 
-        :param token: access_token
-        :param proxies: proxy server
-                        {'http': 'http://127.0.0.1:8888/',
-                        'https': 'https://127.0.0.1:8888/'}
+        :param token: Токен
+        :param config_filename: Расположение config файла
         :param auth_handler: Функция для обработки двухфакторной аутентификации,
                               обязана возвращать строку с кодом и булевое значение,
                               означающее, стоит ли вк запомнить это устройство, для
                               прохождения аутентификации.
         :param captcha_handler: Функция для обработки капчи
-        :param config_filename: Расположение config файла
 
         :param api_version: Версия API (default: '5.52')
         :param app_id: Standalone-приложение
         :param scope: Запрашиваемые права (default: 33554431)
         :param client_secret: Защищенный ключ приложения для серверной
                                 авторизации (https://vk.com/dev/auth_server)
-        :param: too_many_rps_retry: Повторять ли запрос при превышении лимита
-                                    (default: False)
-        :param: delay: Время между зпросами (default: 0.34)
+        :param too_many_rps_retry: Повторять ли запрос при превышении лимита
+                                   (default: False)
+        :param delay: Время между зпросами (default: 0.34)
         """
 
         self.login = login
@@ -89,8 +87,11 @@ class VkApi(object):
 
         self.settings = jconfig.Config(login, filename=config_filename)
 
-        self.http = requests.Session()
-        self.http.proxies = proxies  # Ставим прокси
+        if http is not None:
+            self.http = http
+        else:
+            self.http = requests.Session()
+
         self.http.headers.update({  # Притворимся браузером
             'User-agent': 'Mozilla/5.0 (Windows NT 6.1; rv:40.0) '
             'Gecko/20100101 Firefox/40.0'
