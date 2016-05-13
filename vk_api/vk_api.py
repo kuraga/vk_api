@@ -39,7 +39,8 @@ class VkApi(object):
                  token=None, config_filename='vk_config.json',
                  auth_handler=None, captcha_handler=None,
                  api_version='5.52', app_id=None, scope=33554431,
-                 client_secret=None, delay=0.34, too_many_rps_retry=False):
+                 client_secret=None, delay=0.34, too_many_rps_retry=False,
+                 timeout=60):
         """
         :param login: Логин ВКонтакте
         :param password: Пароль ВКонтакте
@@ -68,6 +69,8 @@ class VkApi(object):
         :param too_many_rps_retry: Повторять ли запрос при превышении лимита
                                    (default: False)
         :param delay: Время между зпросами (default: 0.34)
+
+        :param timeout: Таймаут HTTP-запросов (default: 60)
         """
 
         self.login = login
@@ -84,6 +87,8 @@ class VkApi(object):
         self.client_secret = client_secret
         self.too_many_rps_retry = too_many_rps_retry
         self.delay = delay
+
+        self.timeout = timeout
 
         self.settings = jconfig.Config(login, filename=config_filename)
 
@@ -137,7 +142,7 @@ class VkApi(object):
         self.http.cookies.clear()
 
         # Get cookies
-        response = self.http.get('https://vk.com/')
+        response = self.http.get('https://vk.com/', timeout=self.timeout)
 
         values = {
             'act': 'login',
@@ -153,7 +158,8 @@ class VkApi(object):
                 'captcha_key': captcha_key
             })
 
-        response = self.http.post('https://login.vk.com/', values)
+        response = self.http.post('https://login.vk.com/', values,
+                                  timeout=self.timeout)
 
         remixsid = None
 
@@ -221,14 +227,15 @@ class VkApi(object):
                     'remember': int(remember_device),
                     'hash': auth_hash,
                     }
-            response = self.http.post(url, values, cookies=response.cookies)
+            response = self.http.post(url, values, cookies=response.cookies,
+                                      timeout=self.timeout)
             if url not in response.url:
                 return response
         raise TwoFactorError('Incorrect code: %s' % code)
 
     def security_check(self, url=None, response=None):
         if url:
-            response = self.http.get(url)
+            response = self.http.get(url, timeout=self.timeout)
             if 'security_check' not in response.url:
                 return
 
@@ -258,7 +265,8 @@ class VkApi(object):
                 'to': ''
             }
 
-            response = self.http.post('https://vk.com/login.php', values)
+            response = self.http.post('https://vk.com/login.php', values,
+                                      timeout=self.timeout)
 
             if response.text.split('<!>')[4] == '4':
                 return True
@@ -279,7 +287,7 @@ class VkApi(object):
                 'remixsslsid': '1'
             })
 
-            response = self.http.get(url).json()
+            response = self.http.get(url, timeout=self.timeout).json()
 
             if response['user']['id'] != -1:
                 return response
@@ -300,11 +308,11 @@ class VkApi(object):
         self.http.cookies.update(self.settings.forapilogin)
         self.http.cookies.update({'remixsid': self.sid})
 
-        response = self.http.post(url, values)
+        response = self.http.post(url, values, timeout=self.timeout)
 
         if 'access_token' not in response.url:
             url = search_re(RE_TOKEN_URL, response.text)
-            response = self.http.get(url)
+            response = self.http.get(url, timeout=self.timeout)
 
         if 'access_token' in response.url:
             params = response.url.split('#')[1].split('&')
@@ -330,7 +338,8 @@ class VkApi(object):
         }
 
         response = self.http.post(
-            'https://oauth.vk.com/access_token', values).json()
+            'https://oauth.vk.com/access_token', values, timeout=self.timeout
+        ).json()
 
         if 'error' in response:
             raise AuthorizationError(response['error_description'])
@@ -407,7 +416,7 @@ class VkApi(object):
 
             self.last_request = time.time()
 
-        response = self.http.post(url, values)
+        response = self.http.post(url, values, timeout=self.timeout)
         if response.ok:
             response = response.json()
         else:
