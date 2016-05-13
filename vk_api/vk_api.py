@@ -16,7 +16,6 @@ import requests
 
 import jconfig
 
-DELAY = 0.34  # ~3 requests per second
 TOO_MANY_RPS_CODE = 6
 CAPTCHA_ERROR_CODE = 14
 NEED_VALIDATION_CODE = 17
@@ -41,7 +40,7 @@ class VkApi(object):
                  auth_handler=None, captcha_handler=None,
                  config_filename='vk_config.json',
                  api_version='5.44', app_id=2895443, scope=33554431,
-                 client_secret=None, too_many_rps_retry=False):
+                 client_secret=None, delay=0.34, too_many_rps_retry=False):
         """
         :param login: Логин ВКонтакте
         :param password: Пароль ВКонтакте
@@ -70,6 +69,7 @@ class VkApi(object):
                                 авторизации (https://vk.com/dev/auth_server)
         :param: too_many_rps_retry: Повторять ли запрос при превышении лимита
                                     (default: False)
+        :param: delay: Время между зпросами (default: 0.34)
         """
 
         self.login = login
@@ -85,6 +85,7 @@ class VkApi(object):
         self.scope = scope
         self.client_secret = client_secret
         self.too_many_rps_retry = too_many_rps_retry
+        self.delay = delay
 
         self.settings = jconfig.Config(login, filename=config_filename)
 
@@ -399,7 +400,7 @@ class VkApi(object):
 
         with self.lock:
             # Ограничение 3 запроса в секунду
-            delay = DELAY - (time.time() - self.last_request)
+            delay = self.delay - (time.time() - self.last_request)
             if delay > 0:
                 time.sleep(delay)
 
