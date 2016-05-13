@@ -10,6 +10,7 @@ Copyright (C) 2015
 
 import re
 import time
+import threading
 
 import requests
 
@@ -103,6 +104,8 @@ class VkApi(object):
         }
         if self.too_many_rps_retry:
             self.error_handlers['TOO_MANY_RPS_CODE'] = self.too_many_rps_handler
+
+        self.lock = threading.Lock()
 
     def authorization(self, reauth=False):
         """ Полная авторизация с получением токена
@@ -394,14 +397,15 @@ class VkApi(object):
                 'captcha_key': captcha_key
             })
 
-        # Ограничение 3 запроса в секунду
-        delay = DELAY - (time.time() - self.last_request)
+        with self.lock:
+            # Ограничение 3 запроса в секунду
+            delay = DELAY - (time.time() - self.last_request)
+            if delay > 0:
+                time.sleep(delay)
 
-        if delay > 0:
-            time.sleep(delay)
+            response = self.http.post(url, values)
 
-        response = self.http.post(url, values)
-        self.last_request = time.time()
+            self.last_request = time.time()
 
         if response.ok:
             response = response.json()
