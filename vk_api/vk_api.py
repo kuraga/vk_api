@@ -40,7 +40,7 @@ class VkApi(object):
                  auth_handler=None, captcha_handler=None,
                  config_filename='vk_config.json',
                  api_version='5.44', app_id=2895443, scope=33554431,
-                 client_secret=None):
+                 client_secret=None, too_many_rps_retry=False):
         """
         :param login: Логин ВКонтакте
         :param password: Пароль ВКонтакте
@@ -67,6 +67,8 @@ class VkApi(object):
         :param scope: Запрашиваемые права (default: 33554431)
         :param client_secret: Защищенный ключ приложения для серверной
                                 авторизации (https://vk.com/dev/auth_server)
+        :param: too_many_rps_retry: Повторять ли запрос при превышении лимита
+                                    (default: False)
         """
 
         self.login = login
@@ -81,6 +83,7 @@ class VkApi(object):
         self.app_id = app_id
         self.scope = scope
         self.client_secret = client_secret
+        self.too_many_rps_retry = too_many_rps_retry
 
         self.settings = jconfig.Config(login, filename=config_filename)
 
@@ -96,14 +99,15 @@ class VkApi(object):
         self.error_handlers = {
             NEED_VALIDATION_CODE: self.need_validation_handler,
             CAPTCHA_ERROR_CODE: captcha_handler or self.captcha_handler,
-            TOO_MANY_RPS_CODE: self.too_many_rps_handler,
             TWOFACTOR_CODE: auth_handler or self.auth_handler
         }
+        if self.too_many_rps_retry:
+            self.error_handlers['TOO_MANY_RPS_CODE'] = self.too_many_rps_handler
 
     def authorization(self, reauth=False):
         """ Полная авторизация с получением токена
 
-        :param reauth: Позволяет переавторизиваться, игнорируя сохраненные 
+        :param reauth: Позволяет переавторизиваться, игнорируя сохраненные
                         куки и токен
         """
 
